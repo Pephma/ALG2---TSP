@@ -1,25 +1,39 @@
 import networkx as nx
 import time
-
+from memory_profiler import memory_usage
 import numpy as np
 
+def branch_and_bound_tsp(graph):
+    app_solution, execution_time = branch_and_bound_tsp_(graph)
+
+    mem_usage = memory_usage((branch_and_bound_tsp_, (graph,)))
+    max_memory_usage = max(mem_usage)
+
+    return app_solution, execution_time, max_memory_usage
+
 def find_two_min_edges(weights):
-    min1, min2 = np.inf, np.inf
+    min_1 = np.inf 
+    min_2 = np.inf
+
     for weight in weights:
-        if weight < min1:
-            min1, min2 = weight, min1
-        elif weight < min2:
-            min2 = weight
-    return min1, min2
+        if weight < min_1:
+            min_1 = weight
+            min_2 = min_1
+
+        elif weight < min_2:
+            min_2 = weight
+        else:
+            continue
+    return min_1, min_2
 
 def initial_bound(graph):
     bound = 0
     edge_bounds = np.zeros((graph.number_of_nodes(), 2), dtype=object)
 
     for i in range(1, graph.number_of_nodes() + 1):
-        min1, min2 = find_two_min_edges([graph[i][j]['weight'] for j in graph[i]])
-        edge_bounds[i - 1] = [min1, min2]
-        bound += min1 + min2
+        min_1, min_2 = find_two_min_edges([graph[i][j]['weight'] for j in graph[i]])
+        edge_bounds[i - 1] = [min_1, min_2]
+        bound += min_1 + min_2
 
     return bound / 2, edge_bounds
 
@@ -38,7 +52,7 @@ def update_bound(graph, solution, edge_bounds, bound):
 
     return total / 2, new_edges
 
-def branch_and_bound_tsp(graph):
+def branch_and_bound_tsp_(graph):
     start_time = time.time()
     initial_bound_value, initial_edge_bounds = initial_bound(graph)
     root = (initial_bound_value, initial_edge_bounds, 0, [1])
@@ -77,6 +91,7 @@ def branch_and_bound_tsp(graph):
                         if cost < optimal_solution:
                             new_node = (cost, [], cost, current_node[3] + [k, last_node, 1])
                             stack.append(new_node)
+
     execution_time = time.time() - start_time
 
-    return optimal_solution, execution_time, 0
+    return optimal_solution, execution_time
